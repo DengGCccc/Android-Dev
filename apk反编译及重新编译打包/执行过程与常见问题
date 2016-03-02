@@ -1,0 +1,46 @@
+一、查看AndroidManifest文件,
+执行以下命令（一般会报错，但是能看到AndroidManifest文件）
+
+cd /Users/…./….apk 
+apktool d test.apk
+
+如需不报错得到所有文件，需执行以下命令
+apktool if framework-res.apk
+apktool d test.apk
+
+注：framework-res.apk文件，该文件在手机的/system/framework下面，需要把这个文件拷到跟apkTool同一个目录下
+
+
+常见问题（MAC）：
+1、如出现Exception in thread "main" brut.androlib.AndrolibException: Could not decode arsc file
+产生原因：apktool.jar的版本太低，如果使用高版本不会出现异常
+解决办法：下载新版apktool，将aapt、apktool、apktool.jar三个文件复制到/usr/local/bin下面
+
+2、如出现 Exception in thread "main" brut.androlib.err.UndefinedResObject: resource spec: 0x01030200
+产生原因：原因是找不到资源文件，最有可能的原因是apk中使用了系统资源
+解决：从手机中导出framework-res.apk文件，该文件在/system/framework下面，把这个文件拷到跟apkTool同一个目录下，执行以下语句把资源文件加进来（需要cd到该文件所在目录，即/usr/local/bin）：
+	apktool if framework-res.apk
+
+
+
+二、查看Java文件
+1. 将xx.apk重命名改成xx.zip，然后利用解压缩软件解压，得到一个xx目录，我们要拿到里面的classes.dex文件,
+2. 将classes.dex文件复制到dex2jar-0.0.9.15目录下
+3. 执行命令：sh dex2jar.sh classes.dex, 执行成功后会生成一个classes_dex2jar.jar文件
+4. 用jd-gui工具打开这个jar包就可以看到java源代码了
+
+
+
+三、重新编译打包
+例：修改MainActivity$1.smali中的文件
+打包/Users/deng/Desktop/Demo 下的目录，Demo为前面第一点执行apktool d Demo.apk 命令后自动生成的项目文件夹
+1、apktool b Demo -o New_Demo.apk 
+此时在Demo目录下会得到New_Demo.apk ，接下来需要对此apk进行签名才可以安装
+2. jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore 签名文件名 -storepass 签名密码 待签名的APK文件名 签名的别名
+例：jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore /Users/deng/Desktop/yilei/keystore/yilei.keystore -storepass 123456 /Users/deng/Desktop/bbb/newapp2.apk yilei
+
+3.（未验证）签名之后的APK文件现在已经可以安装到手机上了，不过在此之前Android还极度建议我们对签名后的APK文件进行一次对齐操作，因为这样可以使得我们的程序在Android系统中运行得更快。对齐操作使用的是zipalign工具，该工具存放于<Android SDK>/build-tools/<version>目录下，将这个目录配置到系统环境变量当中就可以在任何位置执行此命令了。命令格式如下： 
+zipalign 4 New_Demo.apk New_Demo_aligned.apk
+其中4是固定值不能改变，后面指定待对齐的APK文件名和对齐后的APK文件名。运行这段命令之后就会生成一个New_Demo_aligned.apk文件
+
+注：MAC下应该执行以下命令: ./zipalign 4 New_Demo.apk New_Demo_aligned.apk
