@@ -1,0 +1,2 @@
+ListView中的item有Button时，此时ListView的setOnItemClickListener会无效，解决的方法是在item的Button中设置
+ android:focusable="false" android:descendantFocusability="blocksDescendants"
