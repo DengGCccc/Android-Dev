@@ -1,0 +1,21 @@
+    
+1.app的build.gradle中添加
+    defaultConfig {
+        ... ...
+        multiDexEnabled true
+    }
+    
+  dependencies中加依赖：
+  ... ...
+  compile 'com.android.support:multidex:1.0.1'
+    
+2. 在AndroidManifest中添加：
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.dgc.example">
+    <application
+        ...
+        android:name="android.support.multidex.MultiDexApplication">
+        ...
+    </application>
+</manifest>

@@ -1,0 +1,14 @@
+新导入模块lib，导致出现下列错误：
+
+Error:Execution failed for task ':app:transformClassesWithDexForDebug'.
+> com.android.build.api.transform.TransformException: com.android.ide.common.process.ProcessException: org.gradle.process.internal.ExecException: Process 'command '/Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/Contents/Home/bin/java'' finished with non-zero exit value 2
+
+原因：
+新导入的库跟其他已存在的库有部分模块存在冲突
+
+解决办法：
+在app的build.gradle 中添加
+    defaultConfig {
+        ... ...
+        multiDexEnabled true
+    }

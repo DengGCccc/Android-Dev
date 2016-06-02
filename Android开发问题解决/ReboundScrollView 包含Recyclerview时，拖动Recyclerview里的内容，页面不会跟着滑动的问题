@@ -1,0 +1,4 @@
+在代码中添加：
+recyclerview.setNestedScrollingEnabled(false);
+
+即可解决问题。
