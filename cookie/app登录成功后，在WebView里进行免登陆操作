@@ -25,12 +25,33 @@ asyncHttpClient.setCookieStore(myCookieStore);
         return sb.toString();
     }
 
-4. 在WebView的设置后面添加以下代码，即可
+4. 在WebView的设置后面添加以下代码（url为需要设置cookie的url），即可
 
         CookieSyncManager.createInstance(getActivity());
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
+        
+        //cookieManager.removeSessionCookie();// 移除
+        //cookieManager.removeAllCookie();
+        
 	//cookies是在HttpClient中获得的cookie,即之前手动保存在SharePreference的值
         cookieManager.setCookie(url, cookie);
 	CookieSyncManager.getInstance().sync();
+	
+大功告成！！
 
+PS：
+1、也可将从SharePreference获取的cookie用";"隔开,再将cookie一条一条设进去。
+HotemManage项目的商城cookie就必须一条条设进去。代码如下：
+	String[] cookieArr = FileUtils.readCookieFromSD(context).split(";");
+	for (String cookie : cookieArr) {
+		cookieManager.setCookie(url, cookie);
+	}
+
+	CookieSyncManager.getInstance().sync();
+
+2、用android-async-http框架，在正式混淆打包的版本会发现得不到cookie，
+原因很简单，就是混淆搞的鬼，加入一下代码即可解决问题
+
+-keep class com.loopj.android.** { *; }
+-keep interface com.loopj.android.** { *; }
