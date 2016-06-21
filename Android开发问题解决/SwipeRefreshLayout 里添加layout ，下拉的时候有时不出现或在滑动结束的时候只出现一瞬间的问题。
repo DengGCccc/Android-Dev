@@ -1,0 +1,2 @@
+SwipeRefreshLayout 可以不在根目录上，但是它的子view必须只能有一个，而且必须是可以滑动的view才能正常使用！
+包括ListView，Recyclerview等等，如果里面没有列表控件，则需加上ScrollView才能正常使用。
