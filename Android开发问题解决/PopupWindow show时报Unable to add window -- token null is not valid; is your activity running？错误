@@ -1,0 +1,23 @@
+1.有可能是在activity之外showAtLocation
+2.在Activity的onCreate()函数里面调用了showAtLocation
+
+这样就会报以下错误：
+Caused by: android.view.WindowManager$BadTokenException: Unable to add window -- token null is not valid; is your activity running?
+
+对于第二种情况，由于popupwindow要依附于一个activity，而activity的onCreate()还没执行完，哪来的popup让你弹出来呢？
+所以要延迟弹框：
+	private Handler popupHandler = new Handler(){
+		@Override
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case 0:
+				popupWindow.showAtLocation(findViewById(R.id.rlShowImage), Gravity.CENTER|Gravity.CENTER, 0, 0);
+				popupWindow.update();
+				break;
+			}
+		}
+		
+	};
+	
+	
+	popupHandler.sendEmptyMessageDelayed(0, 1000);  
