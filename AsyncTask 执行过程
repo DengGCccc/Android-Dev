@@ -1,0 +1,38 @@
+
+
+1. AsyncTask调用execute，execute调用executeOnExecutor
+-->调用onPreExecute
+-->串行线程池（一个进程中所有的AsyncTask全部在这个串行的线程池中排队执行）ThreadPoolExecutor执行FutureTask任务
+
+    public final AsyncTask<Params, Progress, Result> executeOnExecutor(Executor exec,
+            Params... params) {
+        if (mStatus != Status.PENDING) {
+            switch (mStatus) {
+                case RUNNING:
+                    throw new IllegalStateException("Cannot execute task:"
+                            + " the task is already running.");
+                case FINISHED:
+                    throw new IllegalStateException("Cannot execute task:"
+                            + " the task has already been executed "
+                            + "(a task can be executed only once)");
+            }
+        }
+
+        mStatus = Status.RUNNING;
+
+        onPreExecute();
+
+        mWorker.mParams = params;
+        exec.execute(mFuture);
+
+        return this;
+    }
+
+-->AsyncTask执行doInBackground，执行过程中：
+1）调用了publishProgress，InternalHandler发送一条MESSAGE_POST_PROGRESS消息，AsyncTask的onProgressUpdate方法将被调用
+2）如果遇到异常，则发送一条MESSAGE_POST_CANCEL的消息，取消任务，sHandler处理消息时onCancelled()方法将被调用
+3）如果执行成功，则发送一条MESSAGE_POST_RESULT的消息，显示结果，sHandler处理消息时onPostExecute(Result result)方法被调用。
+
+
+
+
