@@ -39,7 +39,7 @@ JNIEXPORT jstring JNICALL Java_com_dgc_testndk_MainActivity_getStringFromNative 
             abiFilters "armeabi", "armeabi-v7a", "x86"
         }
     }
-1.5 编译完成.
+1.5 编译完成. 生成的文件在/app/build/intermediates/jniLibs/debug
 
 另：
 出现如下问题：
@@ -60,6 +60,6 @@ buildTypes {
 	}
 	
 	debug {
-	jniDebuggable true
+		jniDebuggable true
 	}
 }
