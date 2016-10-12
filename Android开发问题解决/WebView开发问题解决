@@ -1,0 +1,9 @@
+1. WebView声音不能播放，并且有
+Android: "Failed to execute 'play' on 'HTMLMediaElement': API can only be initiated by a user gesture [duplicate]
+的错误。
+
+解决办法：
+You can disable this security function. For example:
+
+WebView mWebView = (WebView) findViewById(R.id.web_view);
+mWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
