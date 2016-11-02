@@ -33,6 +33,9 @@
 2）如果遇到异常，则发送一条MESSAGE_POST_CANCEL的消息，取消任务，sHandler处理消息时onCancelled()方法将被调用
 3）如果执行成功，则发送一条MESSAGE_POST_RESULT的消息，显示结果，sHandler处理消息时onPostExecute(Result result)方法被调用。
 
-
+注意：
+1. AsyncTask的实例只能在UI线程中创建
+2. execute方法只能在UI线程中使用
+3. 该task只能被执行一次，否则多次调用时将会出现异常
 
 
