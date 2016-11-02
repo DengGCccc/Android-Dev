@@ -21,6 +21,9 @@
 3.Looper通过msgQueue.next得到的Message对象，Looper将会处理这个消息：
   msg.target.dispatchMessage(msg),这里的msg.target就是Handler对象，这样Handler发送的消息最后又是由此Handler的dispatchMessage处理。
 
+注意：
+1. handler.post(Runnable run), 其中的Runnable对象执行的线程实在创建Handler对象的线程中。
+
 相关代码：
 Looper.java
     public static void loop() {
