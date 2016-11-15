@@ -11,8 +11,6 @@
       Handler handler = new Handler();
       Looper.loop();
       
-      或者Handler handler = new Handler(Looper.getMainLooper());
-      
 
 执行过程：    
 1. Handler发送一条消息，实际上是向MessageQueue中enqueueMessage。
