@@ -39,11 +39,27 @@ JNIEXPORT jstring JNICALL Java_com_dgc_testndk_MainActivity_getStringFromNative 
             abiFilters "armeabi", "armeabi-v7a", "x86"
         }
     }
-1.5 编译完成.
+1.5 编译完成. 生成的文件在/app/build/intermediates/jniLibs/debug
 
 另：
 出现如下问题：
-Error:(50, 0) Error: NDK integration is deprecated in the current plugin. Consider trying the new experimental plugin. For details, see http://tools.android.com/tech-docs/new-build-system/gradle-experimental. Set "android.useDeprecatedNdk=true" in gradle.properties to continue using the current NDK integration.
+
+1.Error:(50, 0) Error: NDK integration is deprecated in the current plugin. Consider trying the new experimental plugin. For details, see http://tools.android.com/tech-docs/new-build-system/gradle-experimental. Set "android.useDeprecatedNdk=true" in gradle.properties to continue using the current NDK integration.
 
 解决办法：
 在gradle.properties 文件里面添加 android.useDeprecatedNdk=true 后重新编译即可
+
+2.编译后jin不生效，打开Run -> Edit Configuration -> Android Native时出现build type isn't jni debuggable错误。
+
+解决办法：
+在app目录下的gradle文件里修改debug配置
+buildTypes {
+	release {
+		minifyEnabled false
+		proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+	}
+	
+	debug {
+		jniDebuggable true
+	}
+}

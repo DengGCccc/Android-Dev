@@ -21,7 +21,35 @@ apktool d test.apk
 解决：从手机中导出framework-res.apk文件，该文件在/system/framework下面，把这个文件拷到跟apkTool同一个目录下，执行以下语句把资源文件加进来（需要cd到该文件所在目录，即/usr/local/bin）：
 	apktool if framework-res.apk
 
-
+3、出现以下错误，删除/Users/deng/Library/apktool/framework/1.apk 即可
+2016-09-20 10:32:24.366 java[4231:76153] There was an error parsing the Info.plist for the bundle at URL Contents/Info.plist -- file://localhost/Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/
+ NSCocoaErrorDomain - 3840
+ <CFBasicHash 0x7f8d29406ed0 [0x7fff73a3b440]>{type = immutable dict, count = 2,
+entries =>
+	0 : <CFString 0x7fff7394a180 [0x7fff73a3b440]>{contents = "NSDebugDescription"} = <CFString 0x7f8d29407350 [0x7fff73a3b440]>{contents = "Encountered unexpected character ã on line 30 while looking for open tag"}
+	1 : <CFString 0x7fff7394cf80 [0x7fff73a3b440]>{contents = "kCFPropertyListOldStyleParsingError"} = Error Domain=NSCocoaErrorDomain Code=3840 "Malformed data byte group at line 1; invalid hex" UserInfo={NSDebugDescription=Malformed data byte group at line 1; invalid hex}
+}
+I: Using Apktool 2.0.0-RC3 on tcsdzz.apk
+I: Loading resource table...
+I: Decoding AndroidManifest.xml with resources...
+I: Loading resource table from file: /Users/deng/Library/apktool/framework/1.apk
+I: Regular manifest package...
+Cleaning up unclosed ZipFile for archive /Users/deng/Library/apktool/framework/1.apk
+I: Decoding file-resources...
+W: Could not decode attr value, using undecoded value instead: ns=android, name=touchscreenBlocksFocus, value=0xffffffff
+I: Decoding values */* XMLs...
+Exception in thread "main" brut.androlib.err.UndefinedResObject: resource spec: 0x01010490
+	at brut.androlib.res.data.ResPackage.getResSpec(ResPackage.java:59)
+	at brut.androlib.res.data.ResTable.getResSpec(ResTable.java:57)
+	at brut.androlib.res.data.ResTable.getResSpec(ResTable.java:53)
+	at brut.androlib.res.data.value.ResReferenceValue.getReferent(ResReferenceValue.java:60)
+	at brut.androlib.res.data.value.ResStyleValue.serializeToResValuesXml(ResStyleValue.java:54)
+	at brut.androlib.res.AndrolibResources.generateValuesFile(AndrolibResources.java:565)
+	at brut.androlib.res.AndrolibResources.decode(AndrolibResources.java:328)
+	at brut.androlib.Androlib.decodeResourcesFull(Androlib.java:131)
+	at brut.androlib.ApkDecoder.decode(ApkDecoder.java:101)
+	at brut.apktool.Main.cmdDecode(Main.java:165)
+	at brut.apktool.Main.main(Main.java:81)
 
 二、查看Java文件
 1. 将xx.apk重命名改成xx.zip，然后利用解压缩软件解压，得到一个xx目录，我们要拿到里面的classes.dex文件,
