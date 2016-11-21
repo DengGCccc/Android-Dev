@@ -1,0 +1,6 @@
+
+如果ListView(Layout)中含有GridView，点击GridView 的item时，此时响应的是GridView的事件，
+如果需要响应ListView(Layout)的事件，需要进行以下处理：
+
+        gv.setClickable(false);
+        gv.setEnabled(false);

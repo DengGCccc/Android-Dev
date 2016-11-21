@@ -1,0 +1,76 @@
+一般地，我们在使用Handler的时候，Handler对象的操作都是在主线程中执行的。如
+Handler handler = new Handler();
+
+handler.post(new Runnable() {
+  @Override
+  public void run() {
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+});
+
+此时，程序会出现ANR的现象，如刚才所说，此时的Runnable对象是在主线程中执行的，也即是 -- Handler中不能执行耗时的操作。
+
+有没有办法解决这个问题呢？HandlerThread于是应运而生。
+Handler之所以在主线程中执行，根本原因在于其所对应的Looper对象是在主线程中。那么，创建一个Handler对象使其Looper不在主线程中不就行了？
+没错，如你所料，HandlerThread正是这样做的。
+
+我们先来看看HandlerThread的简单实用，
+
+HandlerThread handlerThread = new HandlerThread("test");
+handlerThread.start();
+
+Handler handler = new Handler(handlerThread.getLooper(), new Handler.Callback() {
+    @Override
+    public boolean handleMessage(Message msg) {
+
+        return false;
+    }
+});
+
+handler.post(new Runnable() {
+    @Override
+    public void run() {
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+});
+
+我们先来运行这段代码，结果显示，并没有报错。
+根本原因就是HandlerThread会启动一个新的线程，并在内部创建一个新的Looper对象，随后在创建Handler对象的时候将其指向此Looper，这样就成功的将Handler的消息执行转移到非UI线程中。
+
+
+于是，接下来我们看一下相关原理。
+
+我们先来看Handler的构造，其实就是在Handler中持有一个指向该Looper.mQueue对象，
+当handler调用sendMessage方法时，其实就是往该mQueue中去插入一个message，然后Looper.loop()就会取出执行。
+
+再看一下HandlerThread的构造，在其源码的run方法中：
+
+static final ThreadLocal<Looper> sThreadLocal = new ThreadLocal<Looper>();
+... ...
+
+@Override
+public void run() {
+    mTid = Process.myTid();
+    Looper.prepare();
+    synchronized (this) {
+        mLooper = Looper.myLooper();
+        notifyAll();
+    }
+    Process.setThreadPriority(mPriority);
+    onLooperPrepared();
+    Looper.loop();
+    mTid = -1;
+}
+
+可以看到该方法中调用了Looper.prepare()，Loop.loop();
+prepare()中创建了一个Looper对象，并且把该对象放到了该线程范围内的变量中（sThreadLocal）。
+在Looper对象的构造过程中，初始化了一个MessageQueue，作为该Looper对象成员变量。
+loop()就开启了，不断的循环从MessageQueue中取消息处理了，当没有消息的时候会阻塞，有消息的到来的时候会唤醒。
