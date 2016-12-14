@@ -7,3 +7,25 @@ You can disable this security function. For example:
 
 WebView mWebView = (WebView) findViewById(R.id.web_view);
 mWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+
+
+2. 在WebView里面加载https url的时候，如果里面需要加载http的资源或者重定向的时候，webview会block页面加载。
+这应该是Android 4.4以来google对安全机制的提升。所以webview也为开发者增加了新的api。
+
+public static final int MIXED_CONTENT_ALWAYS_ALLOW
+
+Added in API level 21
+Used with setMixedContentMode(int) In this mode, the WebView will allow a secure origin to load content from any other origin, even if that origin is insecure. This is the least secure mode of operation for the WebView, and where possible apps should not set this mode.
+
+Constant Value: 0 (0x00000000)
+
+具体错误如下：
+
+[INFO:CONSOLE(61)] "Mixed Content: The page at 'https://app.ho2ho.com/hoho/api/share/142147b58ed34590a3b572a0a0fb7fb2?l=13806&from=groupmessage' was loaded over HTTPS, but requested an insecure image 'http://120.24.238.70/hohofile/avatar/2016/09/21/e323eb009c244de0ad4c8a2384165739.jpg'. This content should also be served over HTTPS.", source: https://app.ho2ho.com/hoho/api/share/142147b58ed34590a3b572a0a0fb7fb2?l=13806&from=groupmessage (61)
+或者
+[INFO:CONSOLE(0)] “Mixed Content: The page at ‘https://m.wanzhoumo.com/?zmsource=lifecalendar’ was loaded over HTTPS, but requested an insecure image ‘http://cdn.wanzhoumo.com/data/public/operating/2016/03/25_73/14588983970673381.jpg!720x500‘. This request has been blocked; the content must be served over HTTPS.”, source: https://m.wanzhoumo.com/?zmsource=lifecalendar (0)
+
+解决办法：
+if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
+  settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+}

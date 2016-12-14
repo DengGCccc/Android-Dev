@@ -1,0 +1,21 @@
+  attrs.xml:
+  
+  <declare-styleable name="MyItemView">
+      <attr name="bgColor" format="color"/>
+      <attr name="titleSize" format="dimension"/>
+      <attr name="titleColor" format="color"/>
+      <attr name="contentSize" format="dimension"/>
+      <attr name="contentColor" format="color"/>
+      <attr name="iconLeft" format="integer"/>
+      <attr name="height" format="dimension"/>
+      <attr name="hideBottomLine" format="boolean"/>
+      <attr name="hideArrow" format="boolean"/>
+  </declare-styleable>
+  
+  用法：
+  <com.example.asdfsd.MyItemView
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    custom:hideArrow="true"
+    custom:hideBottomLine="true"
+    custom:iconLeft="@drawable/mine_setting" />
