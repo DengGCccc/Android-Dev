@@ -43,7 +43,7 @@ handler.post(new Runnable() {
 });
 
 我们先来运行这段代码，结果显示，并没有报错。
-根本原因就是HandlerThread会启动一个新的线程，并在内部创建一个新的Looper对象，随后在创建Handler对象的时候将其指向此Looper，这样就成功的将Handler的消息执行转移到非UI线程中。
+原因就是HandlerThread会启动一个新的线程，并在内部创建一个新的Looper对象，随后在创建Handler对象的时候将其指向此Looper，这样就成功的将Handler的消息执行转移到非UI线程中。
 
 
 于是，接下来我们看一下相关原理。
