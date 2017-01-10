@@ -29,3 +29,10 @@ Constant Value: 0 (0x00000000)
 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
   settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 }
+
+3. 有的页面加载不出来，并且报错：
+
+Uncaught TypeError: Cannot read property 'getItem' of null
+
+加上这一句解决：
+webSettings.setDomStorageEnabled(true);
