@@ -1,8 +1,8 @@
 
 
-1. AsyncTask调用execute，execute调用executeOnExecutor
+1. AsyncTask调用execute --> execute调用executeOnExecutor函数 --> SerialExecutor调用execute(将FutureTask offer进缓存队列),
 -->调用onPreExecute
--->串行线程池（一个进程中所有的AsyncTask全部在这个串行的线程池中排队执行）ThreadPoolExecutor执行FutureTask任务
+-->串行线程池（一个进程中所有的AsyncTask全部在这个串行的线程池中排队执行）ThreadPoolExecutor串行执行缓存队列中的FutureTask任务，
 
     public final AsyncTask<Params, Progress, Result> executeOnExecutor(Executor exec,
             Params... params) {
