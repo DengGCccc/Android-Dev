@@ -33,6 +33,37 @@
 2）如果遇到异常，则发送一条MESSAGE_POST_CANCEL的消息，取消任务，sHandler处理消息时onCancelled()方法将被调用
 3）如果执行成功，则发送一条MESSAGE_POST_RESULT的消息，显示结果，sHandler处理消息时onPostExecute(Result result)方法被调用。
 
+public AsyncTask() {
+    mWorker = new WorkerRunnable<Params, Result>() {
+        public Result call() throws Exception {
+            mTaskInvoked.set(true);
+
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+            //noinspection unchecked
+            Result result = doInBackground(mParams);
+            Binder.flushPendingCommands();
+            return postResult(result);
+        }
+    };
+
+    mFuture = new FutureTask<Result>(mWorker) {
+        @Override
+        protected void done() {
+            try {
+                postResultIfNotInvoked(get());
+            } catch (InterruptedException e) {
+                android.util.Log.w(LOG_TAG, e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException("An error occurred while executing doInBackground()",
+                        e.getCause());
+            } catch (CancellationException e) {
+                postResultIfNotInvoked(null);
+            }
+        }
+    };
+}
+
+
 注意：
 1. AsyncTask的实例只能在UI线程中创建
 2. execute方法只能在UI线程中使用
