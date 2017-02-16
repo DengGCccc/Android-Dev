@@ -1,0 +1,126 @@
+先上一段AIDL生成的java文件：
+
+public interface ICalculateInterface extends android.os.IInterface {
+    /**
+     * Local-side IPC implementation stub class.
+     */
+    public static abstract class Stub extends android.os.Binder implements com.dgc.aidl.ICalculateInterface {
+        private static final java.lang.String DESCRIPTOR = "com.dgc.aidl.ICalculateInterface";
+
+        /**
+         * Construct the stub at attach it to the interface.
+         */
+        public Stub() {
+            this.attachInterface(this, DESCRIPTOR);
+        }
+
+        /**
+         * Cast an IBinder object into an com.dgc.aidl.ICalculateInterface interface,
+         * generating a proxy if needed.
+         */
+        public static com.dgc.aidl.ICalculateInterface asInterface(android.os.IBinder obj) {
+            if ((obj == null)) {
+                return null;
+            }
+            android.os.IInterface iin = obj.queryLocalInterface(DESCRIPTOR);
+            if (((iin != null) && (iin instanceof com.dgc.aidl.ICalculateInterface))) {
+                return ((com.dgc.aidl.ICalculateInterface) iin);
+            }
+            return new com.dgc.aidl.ICalculateInterface.Stub.Proxy(obj);
+        }
+
+        @Override
+        public android.os.IBinder asBinder() {
+            return this;
+        }
+
+        @Override
+        public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags) throws android.os.RemoteException {
+            switch (code) {
+                case INTERFACE_TRANSACTION: {
+                    reply.writeString(DESCRIPTOR);
+                    return true;
+                }
+                case TRANSACTION_doCalculate: {
+                    data.enforceInterface(DESCRIPTOR);
+                    double _arg0;
+                    _arg0 = data.readDouble();
+                    double _arg1;
+                    _arg1 = data.readDouble();
+                    double _result = this.doCalculate(_arg0, _arg1);
+                    reply.writeNoException();
+                    reply.writeDouble(_result);
+                    return true;
+                }
+            }
+            return super.onTransact(code, data, reply, flags);
+        }
+
+        private static class Proxy implements com.dgc.aidl.ICalculateInterface {
+            private android.os.IBinder mRemote;
+
+            Proxy(android.os.IBinder remote) {
+                mRemote = remote;
+            }
+
+            @Override
+            public android.os.IBinder asBinder() {
+                return mRemote;
+            }
+
+            public java.lang.String getInterfaceDescriptor() {
+                return DESCRIPTOR;
+            }
+
+            @Override
+            public double doCalculate(double a, double b) throws android.os.RemoteException {
+                android.os.Parcel _data = android.os.Parcel.obtain();
+                android.os.Parcel _reply = android.os.Parcel.obtain();
+                double _result;
+                try {
+                    _data.writeInterfaceToken(DESCRIPTOR);
+                    _data.writeDouble(a);
+                    _data.writeDouble(b);
+                    mRemote.transact(Stub.TRANSACTION_doCalculate, _data, _reply, 0);
+                    _reply.readException();
+                    _result = _reply.readDouble();
+                } finally {
+                    _reply.recycle();
+                    _data.recycle();
+                }
+                return _result;
+            }
+        }
+
+        static final int TRANSACTION_doCalculate = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
+    }
+
+    public double doCalculate(double a, double b) throws android.os.RemoteException;
+}
+
+先看看客户端：
+客户端通过 ICalculateInterface.Stub.asInterface() 得到服务端的代理（xxx.Stub.Proxy），当客户端调用 doCalculate 的时候，就会调用代理的 doCalculate函数，
+在这个函数中，调用 transact 方法向服务端发送请求，这个方法是个阻塞方法，调用会一直等待，直到服务端数据返回。
+transact方法有四个参数，
+
+第一个参数为方法ID，这个是客户端与服务端约定好的给方法的编码，彼此一一对应。
+在AIDL文件转化为 .java 文件的时候，系统将会自动给AIDL文件里面的每一个方法自动分配一个方法ID，服务端通过这个ID就能知道客户端请求调用的是哪个函数；
+第二个参数 _data，一般来说，我们会将方法的传参的数据存入_data 中；
+第三个参数 _reply，方法的返回值的数据会存入其中；
+第四个参数是一个 int 值，它的作用是设置进行 IPC 的模式，为 0 表示数据可以双向流通，即 _reply 流可以正常的携带数据回来，
+如果为 1 的话那么数据将只能单向流通，从服务端回来的 _reply 流将不携带任何数据。
+注：AIDL生成的 .java 文件的这个参数均为 0。
+
+再来看看服务端：
+客户端发送transact方法后，服务端会在onTransact方法处理这个请求，根据传入的方法ID确定要执行哪个方法，然后将结果返回。
+ 
+总结
+AIDL的交互我们可以看作为一种 "代理-桩" 的设计理念，在客户端建立一个服务端的代理（xxx.Stub.Proxy），在服务端建立一个客户端的桩，
+这样一来，客户端有什么需求可以直接跟代理说，代理跟它说你等等，我马上给你处理，然后它就告诉桩，
+客户端有这个需求了，桩就马上让服务端开始执行相应的事件，在执行结束后再通过桩把结果告诉代理，代理最后把结果给客户端。
+这样一来，客户端以为代理就是服务端，并且事实上它也只与代理进行了交互，而客户端与代理是在同一个进程中的，在服务端那边亦然——通过这种方式，
+我们就可以让客户端与服务端的通信看上去简单无比，像是从头到尾我们都在一个进程中工作一样。
+  
+  
+
+ 
