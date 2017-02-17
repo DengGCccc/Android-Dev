@@ -1,0 +1,133 @@
+以前讲到跨进程通信，我们总是第一时间想到AIDL(Android接口定义语言)，实际上，使用Messenger在很多情况下是比使用AIDL简单得多的，具体是为什么下文会有比较。
+
+大家看到Messenger可能会很轻易的联想到Message，然后很自然的进一步联想到Handler——没错，Messenger的核心其实就是Message以及Handler来进行线程间的通信。
+下面讲一下通过这种方式实现IPC的步骤：
+
+服务端实现一个Handler，由其接受来自客户端的每个调用的回调
+使用实现的Handler创建Messenger对象
+通过Messenger得到一个IBinder对象，并将其通过onBind()返回给客户端
+客户端使用 IBinder 将 Messenger（引用服务的 Handler）实例化，然后使用后者将 Message 对象发送给服务
+服务端在其 Handler 中（具体地讲，是在 handleMessage() 方法中）接收每个 Message
+用这种方式，客户端并没有像扩展Binder类那样直接调用服务端的方法，而是采用了用Message来传递信息的方式达到交互的目的。接下来是一个简单的例子：
+
+//服务端
+public class MessengerServiceDemo extends Service {
+
+    static final int MSG_SAY_HELLO = 1;
+
+    class ServiceHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_SAY_HELLO:
+                    //当收到客户端的message时，显示hello
+                    Toast.makeText(getApplicationContext(), "hello!", Toast.LENGTH_SHORT).show();
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+    }
+
+    final Messenger mMessenger = new Messenger(new ServiceHandler());
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        Toast.makeText(getApplicationContext(), "binding", Toast.LENGTH_SHORT).show();
+        //返回给客户端一个IBinder实例
+        return mMessenger.getBinder();
+    }
+}
+
+服务端主要是返给客户端一个IBinder实例，以供服务端构造Messenger，并且处理客户端发送过来的Message。
+当然，不要忘了要在Manifests文件里面注册：
+<service  android:name=".ActivityMessenger" android:enabled="true" android:exported="true">
+    <intent-filter>
+        <action android:name="com.lypeer.messenger"></action>
+        <category android:name="android.intent.category.DEFAULT"/>
+    </intent-filter>
+</service>
+
+可以看到，这里注册的就和我们原先注册的有一些区别了，主要是因为我们在这里要跨进程通信，所以在另外一个进程里面并没有我们的service的实例，
+此时必须要给其他的进程一个标志，这样才能让其他的进程找到我们的service。
+讲道理，其实这里的android:exported属性不设置也可以的，因为在有intent-filter的情况下这个属性默认就是true。
+
+接下来我们看下客户端应当怎样操作：
+
+//客户端
+public class ActivityMessenger extends Activity {
+
+    static final int MSG_SAY_HELLO = 1;
+
+    Messenger mService = null;
+    boolean mBound;
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            //接收onBind()传回来的IBinder，并用它构造Messenger
+            mService = new Messenger(service);
+            mBound = true;
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            mService = null;
+            mBound = false;
+        }
+    };
+
+    //调用此方法时会发送信息给服务端
+    public void sayHello(View v) {
+        if (!mBound) return;
+        //发送一条信息给服务端
+        Message msg = Message.obtain(null, MSG_SAY_HELLO, 0, 0);
+        try {
+            mService.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        //绑定服务端的服务，此处的action是service在Manifests文件里面声明的
+        Intent intent = new Intent();
+        intent.setAction("com.lypeer.messenger");
+        //不要忘记了包名，不写会报错
+        intent.setPackage("com.lypeer.ipcserver");
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Unbind from the service
+        if (mBound) {
+            unbindService(mConnection);
+            mBound = false;
+        }
+    }
+}
+
+客户端就主要是发起与服务端的绑定，以及通过onServiceConnected()方法来过去服务端返回来的IBinder，借此构造Messenger，从而可以通过发送Message的方式与服务端进行交互。
+上面的例子其实并不完整，因为它只有客户端对服务端单方面的通信，而服务端没有发信息给客户端的功能——这显然是不合理的。
+而要实现这个其实也很简单，只要客户端里也创建一个Handler实例，让它接收来自服务端的信息，同时让服务端在客户端给它发的请求完成了之后再给客户端发送一条信息即可。
+
+用Messenger来进行IPC的话整体的流程是非常清晰的，Message在其中起到了一个信使的作用，通过它客户端与服务端的信息得以互通。
+
+Messenger与AIDL的比较
+首先，在实现的难度上，肯定是Messenger要简单的多——至少不需要写AIDL文件了(虽然如果认真的究其本质，会发现它的底层实现还是AIDL)。
+另外，使用Messenger还有一个显著的好处是它会把所有的请求排入队列，因此你几乎可以不用担心多线程可能会带来的问题。
+
+但是这样说来，难道AIDL进行IPC就一无是处了么？当然不是，如果是那样的话它早就被淘汰了。
+一方面是如果项目中有并发处理问题的需求，或者会有大量的并发请求，这个时候Messenger就不适用了——它的特性让它只能串行的解决请求。
+另外，我们在使用Messenger的时候只能通过Message来传递信息实现交互，但是在有些时候也许我们需要直接跨进程调用服务端的方法，这个时候又怎么办呢？只能使用AIDL。
+
+所以，这两种IPC方式各有各的优点和缺点，具体使用哪种就看具体的需要了——当然，能使用简单的就尽量使用简单的吧。
