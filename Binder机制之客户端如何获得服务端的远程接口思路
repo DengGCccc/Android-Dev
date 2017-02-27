@@ -1,0 +1,14 @@
+以下纯粹是看了这篇文章后的个人思路
+文章链接：http://blog.csdn.net/luoshengyang/article/details/6633311
+
+首先server和client都调用了ProcessState的构造函数从而都向驱动申请了一块物理内存用于通信数据的存放，然后:
+1.server调用SM的addService函数传递一个字符串和实际Binder对象在自己虚拟地址空间的地址到Binder驱动，
+Binder驱动记录下该地址值，在SM申请的物理内存中分配一个虚拟地址并连同字符串一起传递给SM,而且Binder驱动会记录下两个地址之间的对应关系.
+
+2.client调用SM的getService函数传递一个字符串给SM,SM将相对应的虚拟地址值传递给Binder驱动，
+Binder驱动查询出实际对象的地址，在client申请的物理内存中分配一个虚拟地址并传递给client,
+而且Binder驱动会记录下这个地址和实际Binder对象地址之间的对应关系，client这里得到的就是实际Binder的引用了.
+到了这一步，真正的Binder对象就拥有两个引用，一个在SM,一个client.
+
+3.client通过得到的Binder引用调用server中的函数，驱动会根据传递过来引用值找到应该处理该请求的进程，并唤醒其中的Binder线程，
+调用BBinder对象的onTransaction函数，最终调用到实际的函数。

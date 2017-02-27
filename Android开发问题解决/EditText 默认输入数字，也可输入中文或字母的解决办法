@@ -1,0 +1,34 @@
+//默认为数字键盘
+editText.setKeyListener(new KeyListener() {
+    @Override
+    public int getInputType() {
+        //0无键盘 1英文键盘 2模拟键盘 3数字键盘
+        return 3;
+    }
+
+    @Override
+    public boolean onKeyDown(View view, Editable text, int keyCode, KeyEvent event) {
+        return false;
+    }
+
+    @Override
+    public boolean onKeyUp(View view, Editable text, int keyCode, KeyEvent event) {
+        if (keyCode == 67) {  //67为删除键
+            if (text.length() >= 1) {
+                editText.setText(text.delete(text.length() - 1, text.length()).toString());
+                editText.setSelection(holder.handnumEt.length());
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean onKeyOther(View view, Editable text, KeyEvent event) {
+        return false;
+    }
+
+    @Override
+    public void clearMetaKeyState(View view, Editable content, int states) {
+    }
+});

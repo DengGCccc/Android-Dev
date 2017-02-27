@@ -1,0 +1,30 @@
+一. 直接上代码：
+
+布局只有一个Button。
+btn.setOnClickListener(new OnClickListener() {  
+    @Override  
+    public void onClick(View v) {  
+        System.out.println("btn--click");
+    }  
+}); 
+
+btn.setOnTouchListener(new OnTouchListener() {  
+    @Override  
+    public boolean onTouch(View v, MotionEvent event) {  
+        System.out.println("btn--onTouch");
+        return false;  
+    }  
+}); 
+
+点击一下此Button，打出的日志如下：
+12-24 11:19:38.178 3631-3631/com.dgc.testandroid1 I/System.out: btn--onTouch
+12-24 11:19:38.185 3631-3631/com.dgc.testandroid1 I/System.out: btn--onTouch
+12-24 11:19:38.204 3631-3631/com.dgc.testandroid1 I/System.out: btn--click
+两次onTouch事件表示一次是ACTION_DOWN,一次是ACTION_UP事件。
+
+接着，我们把onTouch的返回值改为false，
+点击一下Button，打出的日志如下：
+12-24 11:23:54.307 3631-3631/com.dgc.testandroid1 I/System.out: btn--onTouch
+12-24 11:23:54.338 3631-3631/com.dgc.testandroid1 I/System.out: btn--onTouch
+
+未完待续。。。
