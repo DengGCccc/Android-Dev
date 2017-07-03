@@ -1,0 +1,23 @@
+build.gradle
+    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    compile 'com.squareup.retrofit2:retrofit:2.1.0'
+    compile 'com.squareup.retrofit2:converter-jackson:2.1.0'
+    compile 'com.jakewharton.retrofit:retrofit2-rxjava2-adapter:1.0.0'
+    compile 'com.squareup.okhttp3:logging-interceptor:3.5.0'
+
+
+usage:
+    Map<String, String> map = new HashMap<>();
+    map.put("usr_id", "AP170102105451");
+    map.put("hn", "01");
+
+    Observable<BaseEntity<VipModel>> observable = RetroFactory.getInstance().getUser(map);
+    observable.compose(this.<BaseEntity<VipModel>>setThread(false))
+            .subscribe(new BaseObserver<VipModel>(this) {
+                @Override
+                public void onSuccess(VipModel model) {
+                    System.out.println(model.getAvailable_balance());
+                }
+            });
+
+
