@@ -1,0 +1,1 @@
+这个问题应该是ViewPager在切换是RecyclerView获得了焦点，recyclerView的 focusableOnTouchMode属性默认是true，所以ViewPager切换时recyclerView自动获得焦点就滚动到头部，解决办法是将recyclerView上面的控件的设置android:focusableInTouchMode="true"
