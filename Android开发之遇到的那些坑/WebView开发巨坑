@@ -36,3 +36,357 @@ Uncaught TypeError: Cannot read property 'getItem' of null
 
 加上这一句解决：
 webSettings.setDomStorageEnabled(true);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+在学习WebView的时候就知道了WebView会出现很多稀奇古怪的问题，真碰上的时候还是焦头烂额，很多问题的解决方案要在网上找很久很久很久，只能说MMP。这里做了稍微全面的总结。
+
+划重点：
+
+1.内存泄露的解决方法
+
+2.Native获得的cookie同步到WebView中
+
+3.API5.0以上Ajax跨域访问无法携带cookie的问题
+
+4.Alert劫持问题
+
+1. 内存泄露
+
+关于内存泄漏，想要彻底解决，最好的方法是当你要用webview的时候，另外单独开一个进程（如何单开进程请自行搜索） 去使用webview 并且当这个 进程结束时，请手动调用System.exit(0)。 但是这种情况又会有另外的问题，就是进程间的通信。
+
+不单开进程时：
+
+JS无法释放，WebView在执行JS时被关闭，这些JS资源会无法释放，一直耗电，一直占CPU，解决方法是在onStop和onResume里分别把setJavaScriptEnabled();给设置成false和true。
+在onDestroy中对webView的销毁做处理，下面是我觉得比较好的方式(主要是处理的比较全面)
+if (mWebView != null) {
+    // 如果先调用destroy()方法，则会命中if (isDestroyed()) return;这一行代码，需要先onDetachedFromWindow()，再
+    // destory()
+    ViewParent parent = mWebView.getParent();
+    if (parent != null) {
+        ((ViewGroup) parent).removeView(mWebView);
+    }
+
+    mWebView.stopLoading();
+    // 退出时调用此方法，移除绑定的服务，否则某些特定系统会报错
+    mWebView.getSettings().setJavaScriptEnabled(false);
+    mWebView.clearHistory();
+    mWebView.clearAnimation();
+    mWebView.clearView();
+    mWebView.removeAllViews();
+
+    try {
+        mWebView.destroy();
+    } catch (Throwable ex) {
+    }
+2. WebView的各种设置
+
+2.1 首先是创建
+
+最好不要在XML中直接添加WebView，而是预留一个FrameLayout，代码中创建WebView，添加到FrameLayout中。
+这样能解决很多内存泄露的问题。
+
+mWebViewContainer = (FrameLayout) findViewById(R.id.web_view_container);
+mWebView = new WebView(WebViewActivity.this);
+mWebViewContainer.addView(mWebView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT));
+2.2 首先是settings，N多种方法
+
+WebSettings webSettings = webView.getSettings();
+//设置了这个属性后我们才能在 WebView 里与我们的 Js 代码进行交互，对于 WebApp 是非常重要的，默认是 false，
+//因此我们需要设置为 true，这个本身会有漏洞，具体的下面我会讲到
+webSettings.setJavaScriptEnabled(true);
+
+//设置 JS 是否可以打开 WebView 新窗口
+webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+
+//WebView 是否支持多窗口，如果设置为 true，需要重写 
+//WebChromeClient#onCreateWindow(WebView, boolean, boolean, Message) 函数，默认为 false
+webSettings.setSupportMultipleWindows(true);
+
+//这个属性用来设置 WebView 是否能够加载图片资源，需要注意的是，这个方法会控制所有图片，包括那些使用 data URI 协议嵌入
+//的图片。使用 setBlockNetworkImage(boolean) 方法来控制仅仅加载使用网络 URI 协议的图片。需要提到的一点是如果这
+//个设置从 false 变为 true 之后，所有被内容引用的正在显示的 WebView 图片资源都会自动加载，该标识默认值为 true。
+webSettings.setLoadsImagesAutomatically(false);
+//标识是否加载网络上的图片（使用 http 或者 https 域名的资源），需要注意的是如果 getLoadsImagesAutomatically() 
+//不返回 true，这个标识将没有作用。这个标识和上面的标识会互相影响。
+webSettings.setBlockNetworkImage(true);
+
+//显示WebView提供的缩放控件
+webSettings.setDisplayZoomControls(true);
+webSettings.setBuiltInZoomControls(true);
+
+//设置是否启动 WebView API，默认值为 false
+webSettings.setDatabaseEnabled(true);
+
+//推荐使用。打开 WebView 的 storage 功能，这样 JS 的 localStorage,sessionStorage 对象才可以使用
+webSettings.setDomStorageEnabled(true);
+//推荐打开。设置是否启动 WebView 的DB API，默认值为 false
+webSettings.setDatabaseEnabled(true);      webSettings.setDatabasePath(Utils.getContext().getDir("WebDb",MODE_PRIVATE).getPath());
+
+//打开 WebView 的 LBS 功能，这样 JS 的 geolocation 对象才可以使用，注意manifest中的权限
+webSettings.setGeolocationEnabled(true);
+webSettings.setGeolocationDatabasePath("");
+
+//设置是否打开 WebView 表单数据的保存功能
+webSettings.setSaveFormData(true);
+
+//设置 WebView 的默认 userAgent 字符串
+webSettings.setUserAgentString("");
+
+// 不推荐使用。设置缓存，是否开启，缓存模式，缓存大小，缓存路径
+webSettings.setAppCacheEnabled(true);
+webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+webSettings.setAppCacheMaxSize(10 * 1024 * 1024); webSettings.setAppCachePath(Utils.getContext().getExternalCacheDir().getAbsolutePath());
+
+//设置是否 WebView 支持 “viewport” 的 HTML meta tag，这个标识是用来屏幕自适应的，当这个标识设置为 false 时，
+//页面布局的宽度被一直设置为 CSS 中控制的 WebView 的宽度；如果设置为 true 并且页面含有 viewport meta tag，那么
+//被这个 tag 声明的宽度将会被使用，如果页面没有这个 tag 或者没有提供一个宽度，那么一个宽型 viewport 将会被使用。
+webSettings.setUseWideViewPort(false);
+
+//设置 WebView 的字体，可以通过这个函数，改变 WebView 的字体，默认字体为 "sans-serif"
+webSettings.setStandardFontFamily("");
+//设置 WebView 字体的大小，默认大小为 16
+webSettings.setDefaultFontSize(20);
+//设置 WebView 支持的最小字体大小，默认为 8
+webSettings.setMinimumFontSize(12);
+
+//设置页面是否支持缩放
+webSettings.setSupportZoom(true);
+//设置文本的缩放倍数，默认为 100
+webSettings.setTextZoom(2);
+2.3 然后是WebViewClient和ChromeClient的设置
+
+WebViewClient主要帮助WebView处理各种通知、请求事件
+
+WebChromeClient主要辅助WebView处理Javascript的对话框、网站图标、网站title、加载进度等
+
+2.3.1 WebViewClient的常用设置
+
+shouldOverrideUrlLoading方法：在点击请求的是链接时会调用此方法。返回false表明交给系统浏览器处理跳转请求；返回true，表明在WebView里面处理新的跳转请求。一般写法如下。
+@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+@Override
+public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+    view.loadUrl(request.getUrl().toString());
+    return true;
+}
+
+@Override
+public boolean shouldOverrideUrlLoading(WebView view, String url) {
+    view.loadUrl(url);
+    return true;
+}
+2.onReceivedSslError:处理https请求。2.1以上版本，前提setJavaScriptEnabled(true);
+
+@Override
+public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+    //handler.cancel(); 默认的处理方式，WebView变成空白页
+    handler.proceed();//接受证书
+    //handleMessage(Message msg); 其他处理
+}
+3.onLoadResource：加载资源时调用，每个资源（比如图片，js，CSS等）都会调用一次。
+
+@Override
+public void onLoadResource(WebView view, String url)
+4.onPageStarted和onPageStarted：页面加载开始和结束后会调用。
+
+@Override
+public void onPageStarted(WebView view, String url, Bitmap favicon)
+
+@Override
+public void onPageFinished(WebView view, String url)
+5.shouldInterceptRequest：同样是加载资源时调用，但是这里WebView可以加载本地的资源提供给内核，若本地处理返回数据，内核不从网络上获取数据。从API 11时引入， API21更新重载方法。加载本地资源使用方法请看 这篇博客 的 常用资源预加载 。
+
+//API 22添加的重载方法
+@Override
+public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) 
+
+@Override
+public WebResourceResponse shouldInterceptRequest(WebView view, String url)
+2.3.2 ChromeClient的常用设置
+
+1.onJsAlert/onJsConfirm/onJsPrompt方法，对应JS的对话框，确认框，输入框。JS弹出对话框等时，会调用对应的方法，我们在方法中弹出AlertDialog等，显示相应信息即可
+
+2.onProgressChanged：通知应用程序当前网页加载的进度
+
+@Override
+public void onProgressChanged(WebView view, int newProgress)
+3.onReceivedTitle：获取网页title标题。
+
+获取标题的时间主要取决于网页前段设置标题的位置，一般设置在页面加载前面，可以较早调用到这个函数
+
+@Override
+public void onReceivedTitle(WebView view, String title)
+4.H5播放器全屏和去全屏方法
+
+//有H5视频，按下全屏播放时调用的方法
+@Override
+public void onShowCustomView(View view, CustomViewCallback callback)
+// 对应的取消全屏方法
+@Override
+public void onHideCustomView()
+5.设置WebView视频未播放时默认显示占位图。关于WebView中的视频播放的相关知识，请点这里
+
+@Override
+public Bitmap getDefaultVideoPoster()
+​
+
+3. Native与JS的相互调用
+
+这个网上有很多资源了，选择一个我觉得比较全面的博客：Android：你要的WebView与 JS 交互方式 都在这里了。
+
+这里只说重点：
+
+Js调用Android现在一般是用WebView的addJavascriptInterface()方式，当然漏洞不能忽视
+
+Android调用Js，毫无疑问，evaluateJavascript()和loadUrl结合使用，根据版本判断
+
+常见错误：
+
+1.线程错误。Js调Android时发生，Android调时也经常发生，因为调了Js，很多情况还是会回调Android。报错信息大致为Js线程必须一致等。很好解决，Android中在UI线程即可。但是推荐WebView.post(0的方式，不推荐runOnUiThread()方式
+
+mWebView.post(new Runnable() {
+    @Override
+    public void run() {
+        // TODO
+    }
+});
+4. Cookie问题
+
+4.1 WebView是有自己的Cookie系统的
+
+WebView会在本地维护每次会话的cookie(保存在data/data/package_name/app_WebView/Cookies.db)。当WebView加载URL的时候,WebView会从本地读取该URL对应的cookie，并携带该cookie与服务器进行通信。
+WebView通过android.webkit.CookieManager类来维护cookie。CookieManager是WebView的cookie管理类。
+
+4.2 Native获得Cookie，设置给WebView如何做。
+
+很多时候我们需要将在native中的 登陆的状态 同步到H5中避免再次登陆，这就需要用到对Cookie的管理。
+
+问题分解：
+1.在OkHttp(假定使用的是OkHttp，其他的方式获得cookie更简单)中获得cookie，并储存；
+2.取得cookie并设置给WebView。
+
+解决：
+
+Okhttp中获得cookie。
+
+获得cookie很简单，只需在OkHttpClient的构建过程中加一行代码。
+
+List<Cookie> mCookies;
+mOkHttpClient = new OkHttpClient.Builder()
+        ...
+        // 下面就是对OkHttp的cookie的处理
+        .cookieJar(new CookieJar() {
+                      // 对服务器返回的cookie的处理的方法
+                      // 参数url和cookie就是cookie对应的url和cookie的值
+                    @Override
+                    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                          // 对cookie的处理，一般是存到内存中，使其他地方可以获得
+                        mCookies = cookies;
+                    }
+                    // 发送请求时的cookie的处理，返回的List<Cookie>即请求的cookie
+                    @Override
+                    public List<Cookie> loadForRequest(HttpUrl url) {
+                          return mCookies;
+                        //return null;
+                    }
+                })
+        .build();
+当然，也可以新建一个类，实现CookieJar，专门处理cookie问题。这里只是给出了最简单的对cookie的处理，对于持久化等，就是另外的问题了。
+
+将cookie同步到WebView中
+
+private void syncCookies(String url, List<Cookie> cookies) {
+    // 一些前提设置
+    CookieSyncManager.createInstance(this);
+    final CookieManager cookieManager = CookieManager.getInstance();
+    cookieManager.setAcceptCookie(true);
+    /**
+     * 设置webView支持JS的Cookie的调用，5.0以上才要设置
+     */
+    mWebView.post(new Runnable() {
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+        @Override
+        public void run() {
+            cookieManager.setAcceptThirdPartyCookies(mWebView, true);
+        }
+    });
+    //cookieManager.removeAllCookie();
+    // 向WebView中添加Cookie，
+    for (Cookie cookie : cookies) {
+        cookieManager.setCookie(url, cookie.toString());
+    }
+    // 刷新，同步
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+        CookieManager.getInstance().flush();
+    } else {
+        CookieSyncManager.getInstance().sync();
+    }
+    //String newCookie = cookieManager.getCookie(url);验证是否将cookie同步进去
+    //KLog.i("newCookie: " + newCookie);
+}
+这里有几点要注意：
+
+1.顺序。
+
+// 先初始化WebView，各种设置setting，webViewClient和chromeClient等
+initWebView();
+// 再获得，并同步cookie
+// MyCookieJar.getInstance().getCookies()可以换成ApiManager.getInstance().getCookies()等
+syncCookies(url, MyCookieJar.getInstance().getCookies());
+// 最后加载url
+mWebView.loadUrl(url);
+2.cookie的添加时，最好是一个cookie，set一次，最好不要自己拼接，否则关于domain，path，逗号，分号等等的问题会让人欲仙欲死。还有说法是用String不行，要用StringBuilder。所以，尽量不自己拼。
+
+4.3 Ajax跨域访问时，Cookie带不过去的解决方法
+
+问题：Native已经登录，cookie可以设置进去，但是网页进行了复杂的ajax操作（我也不知道什么操作），cookie带不过去，到指定页面还得登录。5.0以下正常
+
+解决：经过排查，发现高版本时问题出在ajax跳转时，是Js对Cookie的操作，不经过WebView，正常的WebView设置没有作用。看了很多博客，还是在StackOverFlow上发现解决方法。一行代码
+
+final CookieManager cookieManager = CookieManager.getInstance();
+cookieManager.setAcceptCookie(true);
+/**
+ * 设置webView支持JS的Cookie的调用，5.0以上才要设置
+ */
+mWebView.post(new Runnable() {
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @Override
+    public void run() {
+          // 大致意思：mWebView接收第三方对Cookie的操作，也就是支持Js对cookie的操作
+        cookieManager.setAcceptThirdPartyCookies(mWebView, true);
+    }
+});
+5. 棘手问题
+
+5.1 Alert劫持
+
+Alert劫持：Alert只会弹出一次，并且WebView会卡死。重新加载都不行，必须杀死进程，重新打开App
+
+解决方法很简单，在自定义的onJsAlert方法中加一行代码
+
+@Override
+public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+    ...
+
+    result.confirm();// 不加这行代码，会造成Alert劫持：Alert只会弹出一次，并且WebView会卡死
+
+    return true;
+}
+
+作者：_戏_梦
+链接：http://www.jianshu.com/p/40c767312103
+來源：简书
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
