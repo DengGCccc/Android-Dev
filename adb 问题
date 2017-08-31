@@ -1,0 +1,12 @@
+用 adb 命令时弹出以下错误：
+
+List of devices attached
+* daemon not running. starting it now at tcp:5037 *
+adb E 08-31 14:44:26   995 65150 usb_osx.cpp:333] Could not open interface: e00002c5
+adb E 08-31 14:44:26   995 65150 usb_osx.cpp:294] Could not find device interface
+error: could not install *smartsocket* listener: Address already in use
+ADB server didn't ACK
+
+问题解决：
+host必须加上下面一句：
+127.0.0.1 localhost
