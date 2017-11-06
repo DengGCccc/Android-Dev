@@ -1,0 +1,122 @@
+主要的关键点是 android:clipChildren=”false” 这个属性
+
+1.配置 ViewPager 和其父布局的 android:clipChildren属性为”false”. 
+(android:clipChildren表示是否限制子View在其范围内，默认为true. 代码设置setClipChildren(false)) 
+因为如果clipChildren属性设置为true,就表明我们要将children给clip掉，就是说对于子元素来说，超出当前view的部分都会被切掉，那我们在这里把它设置成false，就表明超出view的部分，不要切掉，依然显示。
+
+注意：setClipChildren(false)在3.0以上版本中，开启了硬件加速后将不能正常工作，所以需要将其设置为软件加速。设置软硬件加速使用 setLayerType(View.LAYER_TYPE_SOFTWARE, null); 也可以在布局文件中添加 android:layerType=”software”
+
+<RelativeLayout
+    android:id="@+id/viewPager_container"
+    android:layout_width="match_parent"
+    android:layout_height="200dp"
+    android:background="@android:color/white"
+    android:clipChildren="false"
+    android:layerType="software">
+
+    <...ClipViewPager
+        android:id="@+id/viewPager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="110dp"
+        android:layout_marginRight="110dp"
+        android:clipChildren="false" />
+</RelativeLayout>
+
+2. 用设置 viewPager 父控件的onTouch监听到ViewPager的监听上。
+
+// 将父类的touch事件分发至viewPgaer，否则只能滑动中间的一个view对象  
+findViewById(R.id.viewPager_container).setOnTouchListener(new View.OnTouchListener() {
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        return mViewPager.dispatchTouchEvent(event);
+    }
+});
+
+3. 重写 ViewPager
+public class ClipViewPager extends ViewPager {
+
+    private OnClickListener onClickListener;
+
+    public ClipViewPager(Context context) {
+        super(context);
+    }
+
+    public ClipViewPager(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    private float x;
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+            x = ev.getX();
+        }
+        //如果是点击事件，那么需要处理下，判断是否点在左右两边
+        if (ev.getAction() == MotionEvent.ACTION_UP && Math.abs(ev.getX() - x) < 20) {
+            View view = viewOfClickOnScreen(ev);
+            if (view != null) {
+//                view.callOnClick();
+                int index = indexOfChild(view);
+
+                if (null != onClickListener)
+                    onClickListener.onClick(view, index);
+
+//                if (getCurrentItem() != index) {
+//                    setCurrentItem(indexOfChild(view));
+//                }
+            }
+
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private View viewOfClickOnScreen(MotionEvent ev) {
+        int childCount = getChildCount();
+        int[] location = new int[2];
+        for (int i = 0; i < childCount; i++) {
+            View v = getChildAt(i);
+            v.getLocationOnScreen(location);
+
+            int minX = location[0];
+            int minY = getTop();
+
+            int maxX = location[0] + v.getWidth();
+            int maxY = getBottom();
+
+            float x = ev.getX();
+            float y = ev.getY();
+
+            if ((x > minX && x < maxX) && (y > minY && y < maxY)) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    public void setOnClickListener(OnClickListener listener) {
+        this.onClickListener = listener;
+    }
+
+    public interface OnClickListener {
+        void onClick(View view, int position);
+    }
+
+}
+
+
+Done.
+
+
+
+
+
+注意：
+
+1 .设置页与页之间的间距 （貌似并没有什么软用）
+UI 上是指定了两个pager间距的，而这个调整起来也颇为麻烦。可以通过setPageMargin 来设置，也可以通过ViewPager.的宽高来展示。这里算起来确实要麻烦很多。
+mViewPager.setPageMargin(int marginPixls);  // setPageMargin表示设置page之间的间距
+
+
+2.设置幕后item的缓存数目（来回滑动的时候不至于出现上一页下一页白屏）
+mViewPager.setOffscreenPageLimit(3);
