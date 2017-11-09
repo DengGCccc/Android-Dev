@@ -1,0 +1,1 @@
+getItemViewType返回的是int值，所以需定义成int，必须从0开始，依次递增，否则会ArrayIndexOutOfBoundsException
