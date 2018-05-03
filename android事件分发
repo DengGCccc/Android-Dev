@@ -22,9 +22,19 @@ btn.setOnTouchListener(new OnTouchListener() {
 12-24 11:19:38.204 3631-3631/com.dgc.testandroid1 I/System.out: btn--click
 两次onTouch事件表示一次是ACTION_DOWN,一次是ACTION_UP事件。
 
-接着，我们把onTouch的返回值改为false，
+接着，我们把onTouch的返回值改为true，
 点击一下Button，打出的日志如下：
 12-24 11:23:54.307 3631-3631/com.dgc.testandroid1 I/System.out: btn--onTouch
 12-24 11:23:54.338 3631-3631/com.dgc.testandroid1 I/System.out: btn--onTouch
+
+
+
+1、如果事件不被中断，整个事件流向应该是从Activity---->ViewGroup--->View 从上往下调用dispatchTouchEvent方法，一直到叶子节点（View）的时候，再由View--->ViewGroup--->Activity从下往上调用onTouchEvent方法。
+dispatchTouchEvent、onTouchEvent、onInterceptTouchEvent，ViewGroup 和 View 的这些方法的默认实现就是会让整个事件安装U型完整走完，所以 return super.xxxxxx() 就会让事件依照U型的方向的完整走完整个事件流动路径），中间不做任何改动，不回溯、不终止，每个环节都走到。
+2、dispatchTouchEvent 和 onTouchEvent return true, 事件就停止传递了（到达终点, 没有谁能再收到这个事件）。
+3、dispatchTouchEvent 和 onTouchEvent return false 的时候事件都回传给父控件的onTouchEvent处理。
+
+4、如果在某个控件的dispatchTouchEvent 返回true消费终结事件，那么收到ACTION_DOWN 的函数也能收到 ACTION_MOVE和ACTION_UP （即跟ACTION_DOWN事件走的路径一致）
+5、ACTION_DOWN事件在哪个控件消费了（return true）， 那么ACTION_MOVE和ACTION_UP就会从上往下（通过dispatchTouchEvent）做事件分发往下传，就只会传到这个控件，不会继续往下传，如果ACTION_DOWN事件是在dispatchTouchEvent消费，那么事件到此为止停止传递，如果ACTION_DOWN事件是在onTouchEvent消费的，那么会把ACTION_MOVE或ACTION_UP事件传给该控件的onTouchEvent处理并结束传递。
 
 未完待续。。。
