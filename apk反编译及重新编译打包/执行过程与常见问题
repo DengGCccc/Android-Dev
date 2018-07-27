@@ -2,11 +2,11 @@
 执行以下命令（一般会报错，但是能看到AndroidManifest文件）
 
 cd /Users/…./….apk 
-apktool d test.apk
+java -jar apktool.jar d test.apk
 
 如需不报错得到所有文件，需执行以下命令
-apktool if framework-res.apk
-apktool d test.apk
+java -jar apktool.jar if framework-res.apk
+java -jar apktool.jar d test.apk
 
 注：framework-res.apk文件，该文件在手机的/system/framework下面，需要把这个文件拷到跟apkTool同一个目录下
 
