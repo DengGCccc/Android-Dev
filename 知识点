@@ -1,0 +1,9 @@
+1、如果我们用ApplicationContext去启动一个LaunchMode为standard的Activity的时候会报错
+android.util.AndroidRuntimeException: Calling startActivity from outside of an Activity context requires the FLAG_ACTIVITY_NEW_TASK flag. Is this really what you want?
+这是因为非Activity类型的Context并没有所谓的任务栈，所以待启动的Activity就找不到栈了。
+解决这个问题的方法就是为待启动的Activity指定FLAG_ACTIVITY_NEW_TASK标记位，这样启动的时候就为它创建一个新的任务栈，
+而此时Activity是以singleTask模式启动的。所有这种用Application启动Activity的方式不推荐使用，Service同Application。
+
+https://www.jianshu.com/p/f0fb461a2b2c
+
+2、
